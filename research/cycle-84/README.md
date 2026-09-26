@@ -9,3 +9,5 @@ The Export body now keeps output, styles and preview side by side at their usefu
 Review images: [wide](export-wide-light.png), [narrow, output side](export-wide-light-compact.png), [narrow, preview side](export-wide-light-compact-right.png).
 
 Known gap: the 380 px minimum is an in-window QML dialog, so it cannot exceed the app window's own bounds. The continuous preview still does not show exact PDF page breaks; use Paginated preview for that.
+
+After the earlier Dev process exited, `./bin/prepare-dev-app` refreshed the stable QA bundle. It passed strict signature verification and launched on a disposable `/private/tmp` Markdown sample. The stopped `/Applications/Fomawrite.app` was replaced with the signed packaged app; its executable matches the package and its strict signature verification passed. The prior installed bundle was kept in a temporary backup during replacement.
