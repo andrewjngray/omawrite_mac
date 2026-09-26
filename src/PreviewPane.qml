@@ -7,6 +7,7 @@ Rectangle {
     objectName: "previewPane"
     property string visualEditorObjectName: "visualEditor"
     property bool allowVisualEdit: true
+    property bool showFooter: true
     property bool tonalLayoutButtons: false
     required property var renderer
     property string markdown: ""
@@ -147,7 +148,7 @@ Rectangle {
         id: previewScroll
         objectName: "previewScroll"
         anchors.fill: parent
-        anchors.bottomMargin: 34
+        anchors.bottomMargin: root.showFooter ? 34 : 0
         clip: true
         contentWidth: width
         contentHeight: Math.max(height, Math.max(previewText.implicitHeight, visualText.implicitHeight) + 100)
@@ -232,6 +233,7 @@ Rectangle {
     }
     Rectangle {
         anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+        visible: root.showFooter
         height: 34; color: backend.palette.panel
         Rectangle { width: parent.width; height: 1; color: backend.palette.border }
         RowLayout {

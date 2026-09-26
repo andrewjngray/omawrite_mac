@@ -6,6 +6,8 @@ import QtQuick.Layouts
 ScrollView {
     id: gallery
     required property var backend
+    property bool embedded: false
+    readonly property real fullContentHeight: styleGalleryColumn.implicitHeight + topPadding + bottomPadding
     property var builtIns: []
     property var userStyles: []
     property string editingId: ""
@@ -15,19 +17,20 @@ ScrollView {
     clip: true
     // Reserve a gutter: the vertical thumb must never sit on top of a card.
     leftPadding: 3
-    rightPadding: 16
+    rightPadding: 26
     contentWidth: availableWidth
     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
     ScrollBar.vertical: ScrollBar {
         id: galleryScrollBar
+        objectName: "styleGalleryScrollBar"
         parent: gallery
-        x: gallery.width - width - 2
+        x: gallery.width - width - 3
         y: 0
         height: gallery.height
-        policy: ScrollBar.AsNeeded
+        policy: gallery.embedded ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
         implicitWidth: 7
         background: Item {}
-        contentItem: Rectangle { radius: 3; color: backend.palette.muted; opacity: galleryScrollBar.active ? 0.7 : 0.35 }
+        contentItem: Rectangle { radius: 3; color: backend.palette.muted; opacity: galleryScrollBar.active ? 0.55 : 0.25 }
     }
 
     function refresh() {
@@ -114,6 +117,7 @@ ScrollView {
     }
 
     ColumnLayout {
+        id: styleGalleryColumn
         objectName: "styleGalleryColumn"
         width: gallery.availableWidth
         spacing: 10

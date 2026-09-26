@@ -15,7 +15,12 @@ Dialog {
     property string cssName: backend.outputCssName()
     property string cssFeedback: ""
     property int previewLayoutMode: 2
-    property bool compact: width < 900
+    property bool compact: width < 980
+    property real requestedWidth: 1100
+    property real requestedHeight: 720
+    property real requestedX: 16
+    property real requestedY: 16
+    property bool geometryInitialized: false
     signal destinationRequested(string format)
     Connections {
         target: hub.backend
@@ -35,15 +40,19 @@ Dialog {
     }
     component SecondaryAction: Button {
         id: action
+        property bool selected: false
         font.pixelSize: 13
         font.weight: Font.DemiBold
         leftPadding: 14; rightPadding: 14
         topPadding: 7; bottomPadding: 7
+        implicitHeight: 36
+        implicitWidth: Math.max(96, contentItem.implicitWidth + leftPadding + rightPadding)
         background: Rectangle {
             radius: 7
-            color: action.down || action.hovered ? backend.palette.hover : backend.palette.field
+            color: action.selected || action.down || action.hovered ? backend.palette.hover : backend.palette.field
             border.color: action.visualFocus ? backend.palette.focus
-                : action.hovered || action.down ? backend.themeAccent : backend.palette.border
+                : action.selected || action.hovered || action.down ? backend.themeAccent : backend.palette.border
+            border.width: action.selected ? 2 : 1
         }
         contentItem: Label {
             text: action.text; font: action.font; color: action.enabled ? backend.palette.text : backend.palette.muted
@@ -55,9 +64,19 @@ Dialog {
     modal: true
     focus: true
     closePolicy: Popup.CloseOnEscape
-    anchors.centerIn: parent
-    width: Math.max(0, Math.min(1100, parent.width - 32))
-    height: Math.max(0, Math.min(720, parent.height - 32))
+    onAboutToShow: {
+        if (!geometryInitialized) {
+            requestedWidth = Math.max(0, Math.min(1100, parent.width - 32))
+            requestedHeight = Math.max(0, Math.min(720, parent.height - 32))
+            requestedX = (parent.width - requestedWidth) / 2
+            requestedY = (parent.height - requestedHeight) / 2
+            geometryInitialized = true
+        }
+    }
+    x: Math.max(16, Math.min(requestedX, parent.width - Math.min(requestedWidth, parent.width - 32) - 16))
+    y: Math.max(16, Math.min(requestedY, parent.height - Math.min(requestedHeight, parent.height - 32) - 16))
+    width: Math.max(0, Math.min(requestedWidth, parent.width - x - 16))
+    height: Math.max(0, Math.min(requestedHeight, parent.height - y - 16))
     padding: 0
     standardButtons: Dialog.NoButton
     background: Rectangle { color: backend.palette.panel; border.color: backend.palette.border; radius: 12 }
@@ -78,24 +97,57 @@ Dialog {
     }
     contentItem: ColumnLayout {
         spacing: 0
-        RowLayout {
-            Layout.fillWidth: true; Layout.fillHeight: true; Layout.margins: 20; spacing: 18
-            ScrollView {
+        SplitView {
+            id: bands
+            objectName: "exportBands"
+            Layout.fillWidth: true; Layout.fillHeight: true; Layout.margins: 20
+            orientation: Qt.Horizontal
+            handle: Item {
+                id: splitterHandle
+                objectName: "exportBandHandle"
+                readonly property bool active: SplitHandle.hovered || SplitHandle.pressed
+                implicitWidth: 14
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: splitterHandle.active ? 2 : 1
+                    height: parent.height
+                    color: splitterHandle.active ? backend.themeAccent : backend.palette.border
+                }
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 4
+                    Repeater {
+                        model: 3
+                        Rectangle {
+                            width: 3; height: 3; radius: 2
+                            color: splitterHandle.active ? backend.themeAccent : backend.palette.muted
+                        }
+                    }
+                }
+            }
+            Item {
+                id: optionsBand
+                objectName: "exportOptionsBand"
+                SplitView.minimumWidth: hub.compact ? 0 : 220
+                SplitView.preferredWidth: 280
+                SplitView.fillWidth: hub.compact
+                ScrollView {
                 id: optionsScroll
-                Layout.preferredWidth: hub.compact ? -1 : 250
-                Layout.fillWidth: hub.compact; Layout.fillHeight: true
-                clip: true; rightPadding: 10; contentWidth: availableWidth
+                objectName: "exportOptionsScroll"
+                anchors.fill: parent; anchors.rightMargin: hub.compact ? 0 : 12
+                clip: true; rightPadding: 24; contentWidth: availableWidth
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 ScrollBar.vertical: ScrollBar {
                     id: optionsBar
+                    objectName: "exportOptionsScrollBar"
                     parent: optionsScroll
-                    x: optionsScroll.width - width - 2
+                    x: optionsScroll.width - width - 3
                     y: 0
                     height: optionsScroll.height
                     policy: ScrollBar.AsNeeded
                     implicitWidth: 7
                     background: Item {}
-                    contentItem: Rectangle { radius: 3; color: backend.palette.muted; opacity: optionsBar.active ? 0.7 : 0.35 }
+                    contentItem: Rectangle { radius: 3; color: backend.palette.muted; opacity: optionsBar.active ? 0.55 : 0.25 }
                 }
                 ColumnLayout {
                 width: optionsScroll.availableWidth; spacing: 12
@@ -108,7 +160,7 @@ Dialog {
                 }
                 Label { text: "Selected style"; color: backend.palette.text; font.pixelSize: 14; font.weight: Font.DemiBold }
                 Label { Layout.fillWidth: true; text: backend.outputTemplateName + " · " + backend.outputFont + " · " + backend.outputPointSize + " pt"; wrapMode: Text.Wrap; color: backend.palette.muted; font.pixelSize: 13; Accessible.name: "Current output style: " + text }
-                StyleGallery { objectName: "exportCompactGallery"; visible: hub.compact; Layout.fillWidth: true; Layout.preferredHeight: 280; backend: hub.backend; onStyleChanged: hub.forceActiveFocus() }
+                StyleGallery { objectName: "exportCompactGallery"; visible: hub.compact; embedded: true; Layout.fillWidth: true; Layout.preferredHeight: fullContentHeight + 2; backend: hub.backend; onStyleChanged: hub.forceActiveFocus() }
                 ColumnLayout {
                     visible: hub.selectedFormat === "html"
                     Layout.fillWidth: true; spacing: 4
@@ -137,16 +189,34 @@ Dialog {
                     RadioButton { text: "Landscape"; ButtonGroup.group: orientationGroup; checked: backend.exportOrientation() === "landscape"; onClicked: backend.setExportOrientation("landscape"); Accessible.name: "Landscape orientation" }
                 }
                 Label { Layout.fillWidth: true; text: selectedFormat === "html" ? "HTML uses the selected output style. Paper settings apply when printing it." : "PDF uses the selected style, paper size and orientation."; wrapMode: Text.Wrap; color: backend.palette.muted; font.pixelSize: 12 }
-                SecondaryAction { visible: hub.compact; Layout.fillWidth: true; text: "Open paginated preview…"; onClicked: backend.printPreview(); Accessible.name: "Open paginated print preview" }
+                SecondaryAction { visible: hub.compact; Layout.fillWidth: true; text: "Paginated preview…"; onClicked: backend.printPreview(); Accessible.name: "Open paginated print preview" }
                 SecondaryAction { visible: hub.width < 520; Layout.fillWidth: true; text: "Share Markdown…"; onClicked: backend.nativeWindowAction("share"); Accessible.name: "Share Markdown" }
                 }
+                }
             }
-            Rectangle { visible: !hub.compact; Layout.fillHeight: true; Layout.preferredWidth: 1; color: backend.palette.border }
-            StyleGallery { objectName: "exportWideGallery"; visible: !hub.compact; Layout.preferredWidth: 280; Layout.fillHeight: true; backend: hub.backend; onStyleChanged: hub.forceActiveFocus() }
-            Rectangle { visible: !hub.compact; Layout.fillHeight: true; Layout.preferredWidth: 1; color: backend.palette.border }
-            ColumnLayout {
-                visible: !hub.compact; Layout.fillWidth: true; Layout.fillHeight: true; spacing: 8
-                Label { text: "Live output preview"; color: backend.palette.text; font.pixelSize: 14; font.weight: Font.DemiBold }
+            Item {
+                id: stylesBand
+                objectName: "exportStylesBand"
+                visible: !hub.compact
+                SplitView.minimumWidth: 260
+                SplitView.preferredWidth: 310
+                StyleGallery { objectName: "exportWideGallery"; anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; backend: hub.backend; onStyleChanged: hub.forceActiveFocus() }
+            }
+            Item {
+                id: previewBand
+                objectName: "exportPreviewBand"
+                visible: !hub.compact
+                SplitView.minimumWidth: 360
+                SplitView.fillWidth: true
+                ColumnLayout {
+                anchors.fill: parent; anchors.leftMargin: 12
+                spacing: 10
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label { text: "Live output preview"; color: backend.palette.text; font.pixelSize: 14; font.weight: Font.DemiBold; Layout.fillWidth: true }
+                    SecondaryAction { objectName: "exportSplitButton"; text: "Split"; selected: hub.previewLayoutMode === 1; onClicked: hub.previewLayoutMode = 1; Accessible.name: "Split export preview" }
+                    SecondaryAction { objectName: "exportFullButton"; text: "Full"; selected: hub.previewLayoutMode === 2; onClicked: hub.previewLayoutMode = 2; Accessible.name: "Full export preview" }
+                }
                 Rectangle {
                     Layout.fillWidth: true; Layout.fillHeight: true; color: backend.palette.page; border.color: backend.palette.border; radius: 5; clip: true
                     RowLayout {
@@ -173,23 +243,32 @@ Dialog {
                             }
                         }
                         Rectangle { visible: hub.previewLayoutMode === 1; Layout.fillHeight: true; Layout.preferredWidth: 1; color: backend.palette.border }
-                        PreviewPane { objectName: "exportHubPreviewPane"; visualEditorObjectName: "exportHubVisualEditor"; allowVisualEdit: false; tonalLayoutButtons: true; Layout.fillWidth: true; Layout.fillHeight: true; renderer: hub.renderer; markdown: hub.markdown; documentBaseUrl: hub.documentBaseUrl; darkMode: hub.darkMode; typeface: backend.outputFont; textSize: backend.outputPointSize; layoutMode: hub.previewLayoutMode; onLayoutRequested: function(mode) { hub.previewLayoutMode = mode }; onLinkRequested: function(link) {} }
+                        PreviewPane { objectName: "exportHubPreviewPane"; visualEditorObjectName: "exportHubVisualEditor"; allowVisualEdit: false; showFooter: false; Layout.fillWidth: true; Layout.fillHeight: true; renderer: hub.renderer; markdown: hub.markdown; documentBaseUrl: hub.documentBaseUrl; darkMode: hub.darkMode; typeface: backend.outputFont; textSize: backend.outputPointSize; layoutMode: hub.previewLayoutMode; onLayoutRequested: function(mode) { hub.previewLayoutMode = mode }; onLinkRequested: function(link) {} }
                     }
                 }
-                Label { Layout.fillWidth: true; text: "Continuous preview of the current output style. Custom HTML CSS and exact page breaks appear only in saved output or paginated preview."; wrapMode: Text.Wrap; color: backend.palette.muted; font.pixelSize: 12 }
-                SecondaryAction { objectName: "exportPaginatedPreviewButton"; text: "Open paginated preview…"; onClicked: backend.printPreview(); Accessible.name: "Open paginated print preview" }
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 8
+                    Label { Layout.fillWidth: true; text: backend.outputTemplateName + " · Continuous preview"; elide: Text.ElideRight; color: backend.palette.muted; font.pixelSize: 12 }
+                    SecondaryAction { objectName: "exportPaginatedPreviewButton"; text: "Paginated preview…"; onClicked: backend.printPreview(); Accessible.name: "Open paginated print preview"; ToolTip.text: "Shows exact PDF page breaks before saving"; ToolTip.visible: hovered }
+                }
+                }
             }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: backend.palette.border }
         RowLayout {
-            Layout.fillWidth: true; Layout.margins: 20
-            SecondaryAction { objectName: "exportShareMarkdownButton"; visible: hub.width >= 520; text: "Share Markdown…"; onClicked: backend.nativeWindowAction("share"); Accessible.name: "Share Markdown" }
+            Layout.fillWidth: true; Layout.preferredHeight: 68
+            Layout.leftMargin: 20; Layout.rightMargin: 8
+            spacing: 8
+            SecondaryAction { objectName: "exportShareMarkdownButton"; visible: hub.width >= 520; text: "Share Markdown…"; Layout.preferredWidth: 160; onClicked: backend.nativeWindowAction("share"); Accessible.name: "Share Markdown" }
             Item { Layout.fillWidth: true }
-            SecondaryAction { text: "Cancel"; onClicked: hub.close(); Accessible.name: "Cancel export" }
+            SecondaryAction { objectName: "exportCancelButton"; text: "Cancel"; Layout.preferredWidth: 136; onClicked: hub.close(); Accessible.name: "Cancel export" }
             Button {
                 id: saveAction
                 objectName: "exportDestinationButton"
                 text: selectedFormat === "pdf" ? "Save PDF…" : "Save HTML…"
+                Layout.preferredWidth: 136; Layout.preferredHeight: 36
+                implicitWidth: 136; implicitHeight: 36
+                font.pixelSize: 13
                 font.weight: Font.DemiBold
                 leftPadding: 18; rightPadding: 18
                 background: Rectangle {
@@ -202,6 +281,49 @@ Dialog {
                 }
                 onClicked: { hub.destinationRequested(hub.selectedFormat); hub.close(); }
                 Accessible.name: text
+            }
+            Item {
+                Layout.preferredWidth: 26; Layout.preferredHeight: 36
+                Canvas {
+                    anchors.right: parent.right; anchors.bottom: parent.bottom
+                    width: 18; height: 18
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+                        ctx.strokeStyle = backend.palette.muted
+                        ctx.lineWidth = 1.4
+                        for (var i = 0; i < 3; ++i) {
+                            ctx.beginPath()
+                            ctx.moveTo(16 - i * 5, 4)
+                            ctx.lineTo(4, 16 - i * 5)
+                            ctx.stroke()
+                        }
+                    }
+                }
+                MouseArea {
+                    id: resizeGrip
+                    objectName: "exportResizeGrip"
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.SizeFDiagCursor
+                    property real startWidth: 0
+                    property real startHeight: 0
+                    property point startPoint: Qt.point(0, 0)
+                    onPressed: function(mouse) {
+                        startWidth = hub.width
+                        startHeight = hub.height
+                        startPoint = mapToItem(hub.parent, mouse.x, mouse.y)
+                    }
+                    onPositionChanged: function(mouse) {
+                        if (!pressed) return
+                        var point = mapToItem(hub.parent, mouse.x, mouse.y)
+                        var maxWidth = hub.parent.width - hub.x - 16
+                        var maxHeight = hub.parent.height - hub.y - 16
+                        hub.requestedWidth = Math.max(Math.min(640, maxWidth), Math.min(maxWidth, startWidth + point.x - startPoint.x))
+                        hub.requestedHeight = Math.max(Math.min(460, maxHeight), Math.min(maxHeight, startHeight + point.y - startPoint.y))
+                    }
+                    Accessible.name: "Resize export dialog"
+                }
             }
         }
     }

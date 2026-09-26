@@ -13,6 +13,7 @@
 #include <QTextLayout>
 #include <QTextDocument>
 #include <QQuickTextDocument>
+#include <QQuickWindow>
 #include <QImage>
 #include <QDate>
 #include <QClipboard>
@@ -4275,17 +4276,49 @@ private slots:
         QVERIFY2(window, qPrintable(component.errorString()));
         auto *hub = window->findChild<QObject *>(QStringLiteral("exportHub"));
         auto *destination = window->findChild<QObject *>(QStringLiteral("exportDestinationButton"));
+        auto *cancel = window->findChild<QObject *>(QStringLiteral("exportCancelButton"));
+        auto *bands = window->findChild<QObject *>(QStringLiteral("exportBands"));
+        auto *optionsBand = window->findChild<QObject *>(QStringLiteral("exportOptionsBand"));
+        auto *stylesBand = window->findChild<QObject *>(QStringLiteral("exportStylesBand"));
+        auto *previewBand = window->findChild<QObject *>(QStringLiteral("exportPreviewBand"));
+        auto *splitButton = window->findChild<QObject *>(QStringLiteral("exportSplitButton"));
+        auto *fullButton = window->findChild<QObject *>(QStringLiteral("exportFullButton"));
+        auto *resizeGrip = window->findChild<QObject *>(QStringLiteral("exportResizeGrip"));
         auto *wideGallery = window->findChild<QObject *>(QStringLiteral("exportWideGallery"));
         auto *compactGallery = window->findChild<QObject *>(QStringLiteral("exportCompactGallery"));
         auto *exportPreview = window->findChild<QObject *>(QStringLiteral("exportHubPreviewPane"));
         auto *exportSource = window->findChild<QObject *>(QStringLiteral("exportHubSourcePreview"));
         auto *pane = window->findChild<QObject *>(QStringLiteral("previewPane"));
         auto *visual = window->findChild<QObject *>(QStringLiteral("visualEditor"));
-        QVERIFY(hub && destination && wideGallery && compactGallery && exportPreview && exportSource && pane && visual);
+        QVERIFY(hub && destination && cancel && bands && optionsBand && stylesBand && previewBand
+                && splitButton && fullButton && resizeGrip && wideGallery && compactGallery
+                && exportPreview && exportSource && pane && visual);
         QVERIFY(QMetaObject::invokeMethod(hub, "open"));
         QTRY_VERIFY(hub->property("visible").toBool());
         QCOMPARE(destination->property("text").toString(), QStringLiteral("Save PDF…"));
         QVERIFY(!hub->property("compact").toBool());
+        QTRY_VERIFY(optionsBand->property("width").toReal() >= 220);
+        QTRY_VERIFY(stylesBand->property("width").toReal() >= 260);
+        QTRY_VERIFY(previewBand->property("width").toReal() >= 360);
+        QTRY_COMPARE(cancel->property("width").toReal(), destination->property("width").toReal());
+        QTRY_COMPARE(cancel->property("height").toReal(), destination->property("height").toReal());
+        auto *quickWindow = qobject_cast<QQuickWindow *>(window.data());
+        auto *gripItem = qobject_cast<QQuickItem *>(resizeGrip);
+        QVERIFY(quickWindow && gripItem);
+        const qreal initialDialogWidth = hub->property("width").toReal();
+        const QPoint gripPoint = gripItem->mapToScene(QPointF(gripItem->width() / 2, gripItem->height() / 2)).toPoint();
+        QTest::mousePress(quickWindow, Qt::LeftButton, Qt::NoModifier, gripPoint);
+        QTest::mouseMove(quickWindow, gripPoint + QPoint(-50, -30));
+        QTest::mouseRelease(quickWindow, Qt::LeftButton, Qt::NoModifier, gripPoint + QPoint(-50, -30));
+        QTRY_VERIFY(hub->property("width").toReal() <= initialDialogWidth - 30);
+        const auto handles = bands->findChildren<QQuickItem *>(QStringLiteral("exportBandHandle"));
+        QVERIFY(handles.size() == 2);
+        const qreal initialOptionsWidth = optionsBand->property("width").toReal();
+        const QPoint handlePoint = handles.first()->mapToScene(QPointF(handles.first()->width() / 2, handles.first()->height() / 2)).toPoint();
+        QTest::mousePress(quickWindow, Qt::LeftButton, Qt::NoModifier, handlePoint);
+        QTest::mouseMove(quickWindow, handlePoint + QPoint(40, 0));
+        QTest::mouseRelease(quickWindow, Qt::LeftButton, Qt::NoModifier, handlePoint + QPoint(40, 0));
+        QTRY_VERIFY(optionsBand->property("width").toReal() >= initialOptionsWidth + 20);
         QTRY_VERIFY(wideGallery->property("availableWidth").toReal() > 200);
         QVERIFY(wideGallery->property("contentWidth").toReal()
                 <= wideGallery->property("availableWidth").toReal() + 1);
@@ -4293,11 +4326,16 @@ private slots:
         QVERIFY(galleryColumn);
         QVERIFY(galleryColumn->property("implicitWidth").toReal()
                 <= wideGallery->property("availableWidth").toReal() + 1);
-        QVERIFY(QMetaObject::invokeMethod(exportPreview, "layoutRequested", Q_ARG(int, 1)));
+        QVERIFY(QMetaObject::invokeMethod(splitButton, "clicked"));
         QTRY_COMPARE(hub->property("previewLayoutMode").toInt(), 1);
         QTRY_VERIFY(exportSource->property("visible").toBool());
-        QVERIFY(QMetaObject::invokeMethod(exportPreview, "layoutRequested", Q_ARG(int, 2)));
+        QVERIFY(QMetaObject::invokeMethod(fullButton, "clicked"));
         QTRY_VERIFY(!exportSource->property("visible").toBool());
+        QVERIFY(hub->setProperty("requestedWidth", 760));
+        QTRY_VERIFY(hub->property("compact").toBool());
+        QVERIFY(hub->property("width").toReal() <= 760);
+        QVERIFY(hub->setProperty("requestedWidth", 1100));
+        QTRY_VERIFY(!hub->property("compact").toBool());
         QVERIFY(window->setProperty("width", 720));
         QVERIFY(window->setProperty("height", 520));
         QTRY_VERIFY(hub->property("compact").toBool());
@@ -4308,6 +4346,32 @@ private slots:
         QTRY_VERIFY(visual->property("visible").toBool());
         const QFont visualFont = qvariant_cast<QFont>(visual->property("font"));
         QVERIFY(visualFont.pixelSize() >= 18);
+        if (qEnvironmentVariableIsSet("FOMAWRITE_EXPORT_TEST_CAPTURE")) {
+            backend.setThemePreset(qEnvironmentVariable("FOMAWRITE_EXPORT_TEST_CAPTURE_THEME") == QStringLiteral("dark")
+                                   ? QStringLiteral("dark") : QStringLiteral("light"));
+            auto *source = window->findChild<QObject *>(QStringLiteral("sourceEditor"));
+            QVERIFY(source);
+            QVERIFY(source->setProperty("text", QStringLiteral("# Export layout sample\n\nA short **bold** paragraph.\n\n## Next step\n\n- Check controls.\n")));
+            const auto captureDialog = [&]() {
+                const QImage captured = quickWindow->grabWindow();
+                const qreal scale = captured.devicePixelRatio();
+                const QRect dialogRect(qRound(hub->property("x").toReal() * scale),
+                                       qRound(hub->property("y").toReal() * scale),
+                                       qRound(hub->property("width").toReal() * scale),
+                                       qRound(hub->property("height").toReal() * scale));
+                return captured.copy(dialogRect);
+            };
+            QTest::qWait(150);
+            const QString widePath = QString::fromLocal8Bit(qgetenv("FOMAWRITE_EXPORT_TEST_CAPTURE"));
+            const QString compactPath = widePath.left(widePath.lastIndexOf('.')) + QStringLiteral("-compact.png");
+            QVERIFY(captureDialog().save(compactPath));
+            QVERIFY(window->setProperty("width", 1280));
+            QVERIFY(window->setProperty("height", 820));
+            QVERIFY(hub->setProperty("requestedWidth", 1100));
+            QVERIFY(hub->setProperty("requestedHeight", 720));
+            QTest::qWait(250);
+            QVERIFY(captureDialog().save(widePath));
+        }
         backend.discardRecovery();
     }
 

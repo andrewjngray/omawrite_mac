@@ -1,0 +1,3 @@
+# Cycle 83 review — export dialog
+
+Open Export in Fomawrite Dev with a disposable document. Drag the lower-right grip to make the dialog shorter, taller, narrower and wider; the title and footer should remain visible and the dialog should stay inside the app window. Drag each dotted divider to resize the three bands. Confirm scrollbars remain separated from controls. At a narrow dialog width, there should be one scrolling column for output settings and styles. Check that Cancel and Save PDF are equal-sized, and that Split, Full and Paginated preview are grouped with the preview. Repeat once in dark mode. Report any clipped control, awkward spacing or drag that does not respond.

@@ -1200,3 +1200,15 @@ Tests: `./bin/build` passed; `./bin/test` passed **113 tests, zero failures and 
 Native verification and known gaps: the old processes exited, allowing the Dev bundle and `/Applications/Fomawrite.app` to be refreshed. The installed executable matches the signed ordinary package, and Dev launched on a disposable sample. Andrew's direct visual review of scrollbar placement and control contrast is still open. The public signing and broader Cycle 69 acceptance work remain open.
 
 Runnable artifacts: `/Applications/Fomawrite.app`, `dist/Fomawrite.app` and `dist/Fomawrite Dev.app`. [Optional exercise](../research/usability/cycle-82.md): inspect export scrollbars and button states at normal and narrow widths, including dark mode.
+
+## Cycle 83 — resizable export layout
+
+Planned scope: respond to Andrew's Cycle 82 screenshot by redesigning the whole Export dialog, not just individual buttons. Define reusable guidance for large task dialogs.
+
+Changes: added the [dialog style guide](dialog-style-guide.md). Export now has a lower-right resize grip, draggable three-band splitters with minimum widths, a compact single-scroll layout, reserved scrollbar gutters, preview actions grouped with their content, and a fixed footer with equally sized Cancel and Save actions. The dialog stays bounded by its host window.
+
+Tests: `./bin/build` passed; `./bin/test` passed **113 tests, zero failures and zero skips**. The export UI test drags the outer grip and first divider, checks band minimums and equal footer sizes, and verifies compact and preview-mode behavior. Synthetic wide/compact light and wide dark renders were visually inspected. `./bin/package-mac` and `./bin/prepare-dev-app` passed with strict signature verification. See [Cycle 83 record](../research/cycle-83/README.md).
+
+Native verification and known gaps: the refreshed Dev app launched on a disposable sample; Andrew's direct review at his display scale remains open. The installed Applications copy stays at Cycle 82 until review. The dialog is resizable within the app window, not a separate native window. Exact PDF page breaks remain in paginated preview rather than the continuous live view; broader Cycle 69 acceptance and public signing remain open.
+
+Runnable artifacts: `dist/Fomawrite.app` and `dist/Fomawrite Dev.app`. [Optional exercise](../research/usability/cycle-83.md): drag the dialog edge and dividers, then inspect wide, compact and dark layouts.
