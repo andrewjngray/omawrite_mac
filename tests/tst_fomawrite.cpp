@@ -4277,9 +4277,11 @@ private slots:
         auto *destination = window->findChild<QObject *>(QStringLiteral("exportDestinationButton"));
         auto *wideGallery = window->findChild<QObject *>(QStringLiteral("exportWideGallery"));
         auto *compactGallery = window->findChild<QObject *>(QStringLiteral("exportCompactGallery"));
+        auto *exportPreview = window->findChild<QObject *>(QStringLiteral("exportHubPreviewPane"));
+        auto *exportSource = window->findChild<QObject *>(QStringLiteral("exportHubSourcePreview"));
         auto *pane = window->findChild<QObject *>(QStringLiteral("previewPane"));
         auto *visual = window->findChild<QObject *>(QStringLiteral("visualEditor"));
-        QVERIFY(hub && destination && wideGallery && compactGallery && pane && visual);
+        QVERIFY(hub && destination && wideGallery && compactGallery && exportPreview && exportSource && pane && visual);
         QVERIFY(QMetaObject::invokeMethod(hub, "open"));
         QTRY_VERIFY(hub->property("visible").toBool());
         QCOMPARE(destination->property("text").toString(), QStringLiteral("Save PDF…"));
@@ -4291,6 +4293,11 @@ private slots:
         QVERIFY(galleryColumn);
         QVERIFY(galleryColumn->property("implicitWidth").toReal()
                 <= wideGallery->property("availableWidth").toReal() + 1);
+        QVERIFY(QMetaObject::invokeMethod(exportPreview, "layoutRequested", Q_ARG(int, 1)));
+        QTRY_COMPARE(hub->property("previewLayoutMode").toInt(), 1);
+        QTRY_VERIFY(exportSource->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(exportPreview, "layoutRequested", Q_ARG(int, 2)));
+        QTRY_VERIFY(!exportSource->property("visible").toBool());
         QVERIFY(window->setProperty("width", 720));
         QVERIFY(window->setProperty("height", 520));
         QTRY_VERIFY(hub->property("compact").toBool());

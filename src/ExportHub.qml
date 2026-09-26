@@ -14,6 +14,7 @@ Dialog {
     property string selectedFormat: "pdf"
     property string cssName: backend.outputCssName()
     property string cssFeedback: ""
+    property int previewLayoutMode: 2
     property bool compact: width < 900
     signal destinationRequested(string format)
     Connections {
@@ -30,6 +31,23 @@ Dialog {
                 hub.cssFeedback = "CSS applied to HTML export only."
             else
                 hub.cssFeedback = hub.backend.status
+        }
+    }
+    component SecondaryAction: Button {
+        id: action
+        font.pixelSize: 13
+        font.weight: Font.DemiBold
+        leftPadding: 14; rightPadding: 14
+        topPadding: 7; bottomPadding: 7
+        background: Rectangle {
+            radius: 7
+            color: action.down || action.hovered ? backend.palette.hover : backend.palette.field
+            border.color: action.visualFocus ? backend.palette.focus
+                : action.hovered || action.down ? backend.themeAccent : backend.palette.border
+        }
+        contentItem: Label {
+            text: action.text; font: action.font; color: action.enabled ? backend.palette.text : backend.palette.muted
+            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
         }
     }
 
@@ -68,6 +86,17 @@ Dialog {
                 Layout.fillWidth: hub.compact; Layout.fillHeight: true
                 clip: true; rightPadding: 10; contentWidth: availableWidth
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                ScrollBar.vertical: ScrollBar {
+                    id: optionsBar
+                    parent: optionsScroll
+                    x: optionsScroll.width - width - 2
+                    y: 0
+                    height: optionsScroll.height
+                    policy: ScrollBar.AsNeeded
+                    implicitWidth: 7
+                    background: Item {}
+                    contentItem: Rectangle { radius: 3; color: backend.palette.muted; opacity: optionsBar.active ? 0.7 : 0.35 }
+                }
                 ColumnLayout {
                 width: optionsScroll.availableWidth; spacing: 12
                 Label { text: "Output"; color: backend.palette.text; font.pixelSize: 14; font.weight: Font.DemiBold }
@@ -86,8 +115,8 @@ Dialog {
                     Label { text: "Custom HTML CSS: " + hub.cssName; Layout.fillWidth: true; elide: Text.ElideMiddle; color: backend.palette.muted; font.pixelSize: 11; Accessible.name: text }
                     RowLayout {
                         Layout.fillWidth: true
-                        Button { text: "Choose CSS…"; onClicked: cssPicker.open(); Accessible.name: "Choose local CSS for HTML export" }
-                        Button { text: "Clear"; enabled: hub.cssName !== "None"; onClicked: { backend.clearOutputCss(); hub.cssFeedback = "" }
+                        SecondaryAction { text: "Choose CSS…"; onClicked: cssPicker.open(); Accessible.name: "Choose local CSS for HTML export" }
+                        SecondaryAction { text: "Clear"; enabled: hub.cssName !== "None"; onClicked: { backend.clearOutputCss(); hub.cssFeedback = "" }
                             Accessible.name: "Clear HTML CSS" }
                     }
                     Label { visible: hub.cssFeedback.length > 0; text: hub.cssFeedback; Layout.fillWidth: true; wrapMode: Text.Wrap; color: backend.palette.muted; font.pixelSize: 11 }
@@ -108,8 +137,8 @@ Dialog {
                     RadioButton { text: "Landscape"; ButtonGroup.group: orientationGroup; checked: backend.exportOrientation() === "landscape"; onClicked: backend.setExportOrientation("landscape"); Accessible.name: "Landscape orientation" }
                 }
                 Label { Layout.fillWidth: true; text: selectedFormat === "html" ? "HTML uses the selected output style. Paper settings apply when printing it." : "PDF uses the selected style, paper size and orientation."; wrapMode: Text.Wrap; color: backend.palette.muted; font.pixelSize: 12 }
-                Button { visible: hub.compact; Layout.fillWidth: true; text: "Open paginated preview…"; flat: true; onClicked: backend.printPreview(); Accessible.name: "Open paginated print preview" }
-                Button { visible: hub.width < 520; Layout.fillWidth: true; text: "Share Markdown…"; flat: true; onClicked: backend.nativeWindowAction("share"); Accessible.name: "Share Markdown" }
+                SecondaryAction { visible: hub.compact; Layout.fillWidth: true; text: "Open paginated preview…"; onClicked: backend.printPreview(); Accessible.name: "Open paginated print preview" }
+                SecondaryAction { visible: hub.width < 520; Layout.fillWidth: true; text: "Share Markdown…"; onClicked: backend.nativeWindowAction("share"); Accessible.name: "Share Markdown" }
                 }
             }
             Rectangle { visible: !hub.compact; Layout.fillHeight: true; Layout.preferredWidth: 1; color: backend.palette.border }
@@ -120,18 +149,43 @@ Dialog {
                 Label { text: "Live output preview"; color: backend.palette.text; font.pixelSize: 14; font.weight: Font.DemiBold }
                 Rectangle {
                     Layout.fillWidth: true; Layout.fillHeight: true; color: backend.palette.page; border.color: backend.palette.border; radius: 5; clip: true
-                    PreviewPane { objectName: "exportHubPreviewPane"; visualEditorObjectName: "exportHubVisualEditor"; allowVisualEdit: false; anchors.fill: parent; renderer: hub.renderer; markdown: hub.markdown; documentBaseUrl: hub.documentBaseUrl; darkMode: hub.darkMode; typeface: backend.outputFont; textSize: backend.outputPointSize; layoutMode: 2; onLayoutRequested: function(mode) {}; onLinkRequested: function(link) {} }
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: 0
+                        ScrollView {
+                            id: sourcePreviewScroll
+                            visible: hub.previewLayoutMode === 1
+                            Layout.fillWidth: true; Layout.fillHeight: true
+                            clip: true
+                            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                            TextArea {
+                                objectName: "exportHubSourcePreview"
+                                width: sourcePreviewScroll.availableWidth
+                                text: hub.markdown
+                                readOnly: true
+                                wrapMode: TextEdit.Wrap
+                                selectByMouse: true
+                                font.family: "Menlo"
+                                font.pixelSize: 13
+                                color: backend.palette.text
+                                background: Rectangle { color: backend.palette.panel }
+                                Accessible.name: "Markdown source for export preview"
+                            }
+                        }
+                        Rectangle { visible: hub.previewLayoutMode === 1; Layout.fillHeight: true; Layout.preferredWidth: 1; color: backend.palette.border }
+                        PreviewPane { objectName: "exportHubPreviewPane"; visualEditorObjectName: "exportHubVisualEditor"; allowVisualEdit: false; tonalLayoutButtons: true; Layout.fillWidth: true; Layout.fillHeight: true; renderer: hub.renderer; markdown: hub.markdown; documentBaseUrl: hub.documentBaseUrl; darkMode: hub.darkMode; typeface: backend.outputFont; textSize: backend.outputPointSize; layoutMode: hub.previewLayoutMode; onLayoutRequested: function(mode) { hub.previewLayoutMode = mode }; onLinkRequested: function(link) {} }
+                    }
                 }
                 Label { Layout.fillWidth: true; text: "Continuous preview of the current output style. Custom HTML CSS and exact page breaks appear only in saved output or paginated preview."; wrapMode: Text.Wrap; color: backend.palette.muted; font.pixelSize: 12 }
-                Button { objectName: "exportPaginatedPreviewButton"; text: "Open paginated preview…"; flat: true; onClicked: backend.printPreview(); Accessible.name: "Open paginated print preview" }
+                SecondaryAction { objectName: "exportPaginatedPreviewButton"; text: "Open paginated preview…"; onClicked: backend.printPreview(); Accessible.name: "Open paginated print preview" }
             }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: backend.palette.border }
         RowLayout {
             Layout.fillWidth: true; Layout.margins: 20
-            Button { objectName: "exportShareMarkdownButton"; visible: hub.width >= 520; text: "Share Markdown…"; flat: true; onClicked: backend.nativeWindowAction("share"); Accessible.name: "Share Markdown" }
+            SecondaryAction { objectName: "exportShareMarkdownButton"; visible: hub.width >= 520; text: "Share Markdown…"; onClicked: backend.nativeWindowAction("share"); Accessible.name: "Share Markdown" }
             Item { Layout.fillWidth: true }
-            Button { text: "Cancel"; flat: true; onClicked: hub.close(); Accessible.name: "Cancel export" }
+            SecondaryAction { text: "Cancel"; onClicked: hub.close(); Accessible.name: "Cancel export" }
             Button {
                 id: saveAction
                 objectName: "exportDestinationButton"

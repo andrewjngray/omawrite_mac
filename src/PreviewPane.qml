@@ -7,6 +7,7 @@ Rectangle {
     objectName: "previewPane"
     property string visualEditorObjectName: "visualEditor"
     property bool allowVisualEdit: true
+    property bool tonalLayoutButtons: false
     required property var renderer
     property string markdown: ""
     property url documentBaseUrl
@@ -261,8 +262,8 @@ Rectangle {
                 darkMode: root.darkMode
                 onClicked: root.sourceEditRequested()
             }
-            ChromeButton { text: "Split"; hint: "Split layout"; darkMode: root.darkMode; checked: root.layoutMode === 1; onClicked: root.layoutRequested(1) }
-            ChromeButton { text: "Full"; hint: "Preview layout"; darkMode: root.darkMode; checked: root.layoutMode === 2; onClicked: root.layoutRequested(2) }
+            ChromeButton { text: "Split"; hint: "Split layout"; darkMode: root.darkMode; tonal: root.tonalLayoutButtons; checked: root.layoutMode === 1; onClicked: root.layoutRequested(1) }
+            ChromeButton { text: "Full"; hint: "Preview layout"; darkMode: root.darkMode; tonal: root.tonalLayoutButtons; checked: root.layoutMode === 2; onClicked: root.layoutRequested(2) }
         }
     }
 

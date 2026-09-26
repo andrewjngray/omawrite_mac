@@ -19,9 +19,15 @@ ScrollView {
     contentWidth: availableWidth
     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
     ScrollBar.vertical: ScrollBar {
+        id: galleryScrollBar
+        parent: gallery
+        x: gallery.width - width - 2
+        y: 0
+        height: gallery.height
         policy: ScrollBar.AsNeeded
         implicitWidth: 7
-        contentItem: Rectangle { radius: 3; color: backend.palette.muted }
+        background: Item {}
+        contentItem: Rectangle { radius: 3; color: backend.palette.muted; opacity: galleryScrollBar.active ? 0.7 : 0.35 }
     }
 
     function refresh() {
@@ -122,8 +128,8 @@ ScrollView {
                 Accessible.name: modelData.name + ", " + modelData.font
                 background: Rectangle {
                     radius: 7
-                    color: parent.checked ? backend.palette.field : parent.hovered ? backend.palette.hover : "transparent"
-                    border.color: parent.checked ? backend.themeAccent : backend.palette.border
+                    color: parent.checked ? backend.palette.field : parent.down || parent.hovered ? backend.palette.hover : backend.palette.panel
+                    border.color: parent.checked || parent.hovered ? backend.themeAccent : backend.palette.border
                     border.width: parent.checked ? 2 : 1
                 }
                 contentItem: Item {
@@ -147,8 +153,8 @@ ScrollView {
                 Accessible.name: modelData.name + ", user style, " + modelData.fontFamily
                 background: Rectangle {
                     radius: 7
-                    color: parent.checked ? backend.palette.field : parent.hovered ? backend.palette.hover : "transparent"
-                    border.color: parent.checked ? backend.themeAccent : backend.palette.border
+                    color: parent.checked ? backend.palette.field : parent.down || parent.hovered ? backend.palette.hover : backend.palette.panel
+                    border.color: parent.checked || parent.hovered ? backend.themeAccent : backend.palette.border
                     border.width: parent.checked ? 2 : 1
                 }
                 contentItem: Item {
@@ -166,7 +172,7 @@ ScrollView {
             TextField { id: copyName; Layout.fillWidth: true; placeholderText: "Name this copy"; maximumLength: 80; Accessible.name: "Name for style copy"; onAccepted: gallery.createCopy() }
             Button {
                 Layout.fillWidth: true; text: "Duplicate current"; flat: true
-                background: Rectangle { radius: 6; color: parent.hovered ? backend.palette.hover : backend.palette.panel; border.color: backend.palette.border }
+                background: Rectangle { radius: 6; color: parent.down || parent.hovered ? backend.palette.hover : backend.palette.field; border.color: backend.palette.border }
                 onClicked: gallery.createCopy(); Accessible.name: "Duplicate current style"
             }
         }
@@ -191,12 +197,12 @@ ScrollView {
                 Layout.fillWidth: true; spacing: 6
                 Button {
                     Layout.fillWidth: true; text: "Apply to preview"; flat: true
-                    background: Rectangle { radius: 6; color: parent.hovered ? backend.palette.hover : backend.palette.field; border.color: backend.palette.border }
+                    background: Rectangle { radius: 6; color: parent.down || parent.hovered ? backend.palette.hover : backend.palette.field; border.color: backend.palette.border }
                     onClicked: gallery.saveEditor(); Accessible.name: "Apply style changes to live preview"
                 }
                 Button {
                     Layout.fillWidth: true; text: "Delete style"; flat: true
-                    background: Rectangle { radius: 6; color: parent.hovered ? backend.palette.hover : backend.palette.panel; border.color: backend.palette.border }
+                    background: Rectangle { radius: 6; color: parent.down || parent.hovered ? backend.palette.hover : backend.palette.field; border.color: backend.palette.border }
                     onClicked: gallery.removeEditor(); Accessible.name: "Delete selected user style"
                 }
             }

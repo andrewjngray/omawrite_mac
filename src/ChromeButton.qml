@@ -4,6 +4,7 @@ import QtQuick.Controls
 Button {
     id: control
     property bool darkMode: false
+    property bool tonal: false
     property color iconColor: iconName === "folder" ? (backend.palette.folder) : "transparent"
     font.pixelSize: 14
     property string iconName: ""
@@ -56,8 +57,10 @@ Button {
     }
     background: Rectangle {
         radius: 8
-        color: control.checked ? (backend.palette.hover) : control.down || control.hovered ? (backend.palette.hover) : "transparent"
-        border.width: control.visualFocus ? 1 : 0
-        border.color: backend.palette.focus
+        color: control.checked || control.down || control.hovered ? backend.palette.hover
+            : control.tonal ? backend.palette.field : "transparent"
+        border.width: control.visualFocus || control.tonal ? 1 : 0
+        border.color: control.visualFocus ? backend.palette.focus
+            : control.tonal && (control.hovered || control.down) ? backend.themeAccent : backend.palette.border
     }
 }

@@ -1188,3 +1188,15 @@ Tests and native verification: `./bin/build` passed and `./bin/test` passed **11
 Known gaps: Andrew's direct visual check of the middle column at his display scale is still needed. The separate-window resizing idea has not been built; export preview remains continuous rather than page-exact. Full Cycle 69 acceptance and public signing remain open.
 
 Runnable artifacts: `dist/Fomawrite Dev.app` for review and `dist/Fomawrite.app` as the packaged ordinary build. [Optional exercise](../research/usability/cycle-81.md): open Export at normal and minimum app sizes and inspect the style cards and controls.
+
+## Cycle 82 — export scrollbar and button clarity
+
+Planned scope: address Andrew's screenshots of a scrollbar mark beside “Built-in styles” and secondary export controls that lacked an obvious button state.
+
+Changes: both export scrollbars are placed at the right edge of their own clipped panes. Style cards and secondary actions now have a visible resting fill and border, a stronger accent outline on hover, and a clear selection outline. Split and Full in the export preview now switch between a read-only source/rendered split and the full rendered view.
+
+Tests: `./bin/build` passed; `./bin/test` passed **113 tests, zero failures and zero skips**. The export UI check verifies that Split reveals source and Full hides it, alongside the existing wide/narrow layout assertions. `./bin/package-mac` produced a locally signed ordinary bundle; strict signature verification passed. See [Cycle 82 record](../research/cycle-82/README.md).
+
+Native verification and known gaps: the running Dev bundle still needs a normal close before it can be refreshed; Andrew's direct visual review of scrollbar placement and control contrast is still open. The regular Applications copy remains older. The public signing and broader Cycle 69 acceptance work remain open.
+
+Runnable artifact: `dist/Fomawrite.app` until the stable Dev bundle is refreshed. [Optional exercise](../research/usability/cycle-82.md): inspect export scrollbars and button states at normal and narrow widths, including dark mode.
