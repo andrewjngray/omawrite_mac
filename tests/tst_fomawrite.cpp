@@ -4278,6 +4278,9 @@ private slots:
         auto *destination = window->findChild<QObject *>(QStringLiteral("exportDestinationButton"));
         auto *cancel = window->findChild<QObject *>(QStringLiteral("exportCancelButton"));
         auto *bands = window->findChild<QObject *>(QStringLiteral("exportBands"));
+        auto *horizontalViewport = window->findChild<QObject *>(QStringLiteral("exportHorizontalViewport"));
+        auto *horizontalBar = window->findChild<QObject *>(QStringLiteral("exportHorizontalScrollBar"));
+        auto *horizontalThumb = window->findChild<QObject *>(QStringLiteral("exportHorizontalThumb"));
         auto *optionsBand = window->findChild<QObject *>(QStringLiteral("exportOptionsBand"));
         auto *stylesBand = window->findChild<QObject *>(QStringLiteral("exportStylesBand"));
         auto *previewBand = window->findChild<QObject *>(QStringLiteral("exportPreviewBand"));
@@ -4285,18 +4288,18 @@ private slots:
         auto *fullButton = window->findChild<QObject *>(QStringLiteral("exportFullButton"));
         auto *resizeGrip = window->findChild<QObject *>(QStringLiteral("exportResizeGrip"));
         auto *wideGallery = window->findChild<QObject *>(QStringLiteral("exportWideGallery"));
-        auto *compactGallery = window->findChild<QObject *>(QStringLiteral("exportCompactGallery"));
         auto *exportPreview = window->findChild<QObject *>(QStringLiteral("exportHubPreviewPane"));
         auto *exportSource = window->findChild<QObject *>(QStringLiteral("exportHubSourcePreview"));
         auto *pane = window->findChild<QObject *>(QStringLiteral("previewPane"));
         auto *visual = window->findChild<QObject *>(QStringLiteral("visualEditor"));
-        QVERIFY(hub && destination && cancel && bands && optionsBand && stylesBand && previewBand
-                && splitButton && fullButton && resizeGrip && wideGallery && compactGallery
+        QVERIFY(hub && destination && cancel && bands && horizontalViewport && horizontalBar && horizontalThumb
+                && optionsBand && stylesBand && previewBand
+                && splitButton && fullButton && resizeGrip && wideGallery
                 && exportPreview && exportSource && pane && visual);
         QVERIFY(QMetaObject::invokeMethod(hub, "open"));
         QTRY_VERIFY(hub->property("visible").toBool());
         QCOMPARE(destination->property("text").toString(), QStringLiteral("Save PDF…"));
-        QVERIFY(!hub->property("compact").toBool());
+        QVERIFY(!horizontalBar->property("visible").toBool());
         QTRY_VERIFY(optionsBand->property("width").toReal() >= 220);
         QTRY_VERIFY(stylesBand->property("width").toReal() >= 260);
         QTRY_VERIFY(previewBand->property("width").toReal() >= 360);
@@ -4331,15 +4334,38 @@ private slots:
         QTRY_VERIFY(exportSource->property("visible").toBool());
         QVERIFY(QMetaObject::invokeMethod(fullButton, "clicked"));
         QTRY_VERIFY(!exportSource->property("visible").toBool());
-        QVERIFY(hub->setProperty("requestedWidth", 760));
-        QTRY_VERIFY(hub->property("compact").toBool());
-        QVERIFY(hub->property("width").toReal() <= 760);
+        QVERIFY(hub->setProperty("requestedWidth", 400));
+        QTRY_VERIFY(hub->property("width").toReal() <= 400);
+        QTRY_VERIFY(horizontalViewport->property("contentWidth").toReal()
+                    > horizontalViewport->property("width").toReal() + 400);
+        QTRY_VERIFY(horizontalBar->property("visible").toBool());
+        QVERIFY(stylesBand->property("visible").toBool());
+        QVERIFY(previewBand->property("visible").toBool());
+        auto *thumbItem = qobject_cast<QQuickItem *>(horizontalThumb);
+        QVERIFY(thumbItem);
+        const QPoint thumbPoint = thumbItem->mapToScene(QPointF(thumbItem->width() / 2, thumbItem->height() / 2)).toPoint();
+        QTest::mousePress(quickWindow, Qt::LeftButton, Qt::NoModifier, thumbPoint);
+        QTest::mouseMove(quickWindow, thumbPoint + QPoint(80, 0));
+        QTest::mouseRelease(quickWindow, Qt::LeftButton, Qt::NoModifier, thumbPoint + QPoint(80, 0));
+        QTRY_VERIFY(horizontalViewport->property("contentX").toReal() > 50);
+        QVERIFY(horizontalViewport->setProperty("contentX",
+                horizontalViewport->property("contentWidth").toReal()
+                - horizontalViewport->property("width").toReal()));
+        QTRY_VERIFY(horizontalViewport->property("contentX").toReal() > 400);
+        const auto *viewportItem = qobject_cast<QQuickItem *>(horizontalViewport);
+        const auto *previewItem = qobject_cast<QQuickItem *>(previewBand);
+        QVERIFY(viewportItem && previewItem);
+        QTRY_VERIFY(previewItem->mapToScene(QPointF(0, 0)).x()
+                    < viewportItem->mapToScene(QPointF(viewportItem->width(), 0)).x());
+        QVERIFY(cancel->property("visible").toBool());
+        QVERIFY(destination->property("visible").toBool());
         QVERIFY(hub->setProperty("requestedWidth", 1100));
-        QTRY_VERIFY(!hub->property("compact").toBool());
+        QTRY_VERIFY(!horizontalBar->property("visible").toBool());
         QVERIFY(window->setProperty("width", 720));
         QVERIFY(window->setProperty("height", 520));
-        QTRY_VERIFY(hub->property("compact").toBool());
-        QTRY_VERIFY(compactGallery->property("availableWidth").toReal() > 200);
+        QTRY_VERIFY(horizontalBar->property("visible").toBool());
+        QVERIFY(stylesBand->property("visible").toBool());
+        QVERIFY(previewBand->property("visible").toBool());
         QVERIFY(hub->property("width").toReal() <= window->property("width").toReal() - 31);
         QVERIFY(hub->property("height").toReal() <= window->property("height").toReal() - 31);
         QVERIFY(pane->setProperty("visualEditEnabled", true));
@@ -4364,7 +4390,16 @@ private slots:
             QTest::qWait(150);
             const QString widePath = QString::fromLocal8Bit(qgetenv("FOMAWRITE_EXPORT_TEST_CAPTURE"));
             const QString compactPath = widePath.left(widePath.lastIndexOf('.')) + QStringLiteral("-compact.png");
+            const QString compactRightPath = widePath.left(widePath.lastIndexOf('.')) + QStringLiteral("-compact-right.png");
+            QVERIFY(hub->setProperty("requestedWidth", 400));
+            QVERIFY(horizontalViewport->setProperty("contentX", 0));
+            QTest::qWait(150);
             QVERIFY(captureDialog().save(compactPath));
+            QVERIFY(horizontalViewport->setProperty("contentX",
+                    horizontalViewport->property("contentWidth").toReal()
+                    - horizontalViewport->property("width").toReal()));
+            QTest::qWait(150);
+            QVERIFY(captureDialog().save(compactRightPath));
             QVERIFY(window->setProperty("width", 1280));
             QVERIFY(window->setProperty("height", 820));
             QVERIFY(hub->setProperty("requestedWidth", 1100));

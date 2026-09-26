@@ -15,7 +15,7 @@ Dialog {
     property string cssName: backend.outputCssName()
     property string cssFeedback: ""
     property int previewLayoutMode: 2
-    property bool compact: width < 980
+    readonly property real minimumBandsWidth: 220 + 260 + 360 + 28
     property real requestedWidth: 1100
     property real requestedHeight: 720
     property real requestedX: 16
@@ -97,10 +97,30 @@ Dialog {
     }
     contentItem: ColumnLayout {
         spacing: 0
+        Flickable {
+            id: horizontalViewport
+            objectName: "exportHorizontalViewport"
+            Layout.fillWidth: true; Layout.fillHeight: true; Layout.margins: 20
+            clip: true
+            interactive: false // Preserve mouse drags on the two band dividers.
+            boundsBehavior: Flickable.StopAtBounds
+            contentWidth: Math.max(width, hub.minimumBandsWidth)
+            contentHeight: height
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOff }
+            ScrollBar.horizontal: ScrollBar {
+                id: horizontalBar
+                objectName: "exportHorizontalScrollBar"
+                policy: horizontalViewport.contentWidth > horizontalViewport.width + 1
+                    ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                height: 12
+                background: Rectangle { radius: 6; color: backend.palette.field }
+                contentItem: Rectangle { objectName: "exportHorizontalThumb"; radius: 6; color: backend.palette.muted }
+            }
         SplitView {
             id: bands
             objectName: "exportBands"
-            Layout.fillWidth: true; Layout.fillHeight: true; Layout.margins: 20
+            width: horizontalViewport.contentWidth
+            height: horizontalViewport.height - (horizontalBar.policy === ScrollBar.AlwaysOn ? horizontalBar.height + 4 : 0)
             orientation: Qt.Horizontal
             handle: Item {
                 id: splitterHandle
@@ -128,13 +148,12 @@ Dialog {
             Item {
                 id: optionsBand
                 objectName: "exportOptionsBand"
-                SplitView.minimumWidth: hub.compact ? 0 : 220
+                SplitView.minimumWidth: 220
                 SplitView.preferredWidth: 280
-                SplitView.fillWidth: hub.compact
                 ScrollView {
                 id: optionsScroll
                 objectName: "exportOptionsScroll"
-                anchors.fill: parent; anchors.rightMargin: hub.compact ? 0 : 12
+                anchors.fill: parent; anchors.rightMargin: 12
                 clip: true; rightPadding: 24; contentWidth: availableWidth
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 ScrollBar.vertical: ScrollBar {
@@ -160,7 +179,6 @@ Dialog {
                 }
                 Label { text: "Selected style"; color: backend.palette.text; font.pixelSize: 14; font.weight: Font.DemiBold }
                 Label { Layout.fillWidth: true; text: backend.outputTemplateName + " · " + backend.outputFont + " · " + backend.outputPointSize + " pt"; wrapMode: Text.Wrap; color: backend.palette.muted; font.pixelSize: 13; Accessible.name: "Current output style: " + text }
-                StyleGallery { objectName: "exportCompactGallery"; visible: hub.compact; embedded: true; Layout.fillWidth: true; Layout.preferredHeight: fullContentHeight + 2; backend: hub.backend; onStyleChanged: hub.forceActiveFocus() }
                 ColumnLayout {
                     visible: hub.selectedFormat === "html"
                     Layout.fillWidth: true; spacing: 4
@@ -189,7 +207,6 @@ Dialog {
                     RadioButton { text: "Landscape"; ButtonGroup.group: orientationGroup; checked: backend.exportOrientation() === "landscape"; onClicked: backend.setExportOrientation("landscape"); Accessible.name: "Landscape orientation" }
                 }
                 Label { Layout.fillWidth: true; text: selectedFormat === "html" ? "HTML uses the selected output style. Paper settings apply when printing it." : "PDF uses the selected style, paper size and orientation."; wrapMode: Text.Wrap; color: backend.palette.muted; font.pixelSize: 12 }
-                SecondaryAction { visible: hub.compact; Layout.fillWidth: true; text: "Paginated preview…"; onClicked: backend.printPreview(); Accessible.name: "Open paginated print preview" }
                 SecondaryAction { visible: hub.width < 520; Layout.fillWidth: true; text: "Share Markdown…"; onClicked: backend.nativeWindowAction("share"); Accessible.name: "Share Markdown" }
                 }
                 }
@@ -197,7 +214,6 @@ Dialog {
             Item {
                 id: stylesBand
                 objectName: "exportStylesBand"
-                visible: !hub.compact
                 SplitView.minimumWidth: 260
                 SplitView.preferredWidth: 310
                 StyleGallery { objectName: "exportWideGallery"; anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; backend: hub.backend; onStyleChanged: hub.forceActiveFocus() }
@@ -205,7 +221,6 @@ Dialog {
             Item {
                 id: previewBand
                 objectName: "exportPreviewBand"
-                visible: !hub.compact
                 SplitView.minimumWidth: 360
                 SplitView.fillWidth: true
                 ColumnLayout {
@@ -253,6 +268,7 @@ Dialog {
                 }
                 }
             }
+        }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: backend.palette.border }
         RowLayout {
@@ -319,7 +335,7 @@ Dialog {
                         var point = mapToItem(hub.parent, mouse.x, mouse.y)
                         var maxWidth = hub.parent.width - hub.x - 16
                         var maxHeight = hub.parent.height - hub.y - 16
-                        hub.requestedWidth = Math.max(Math.min(640, maxWidth), Math.min(maxWidth, startWidth + point.x - startPoint.x))
+                        hub.requestedWidth = Math.max(Math.min(380, maxWidth), Math.min(maxWidth, startWidth + point.x - startPoint.x))
                         hub.requestedHeight = Math.max(Math.min(460, maxHeight), Math.min(maxHeight, startHeight + point.y - startPoint.y))
                     }
                     Accessible.name: "Resize export dialog"

@@ -1212,3 +1212,15 @@ Tests: `./bin/build` passed; `./bin/test` passed **113 tests, zero failures and 
 Native verification and known gaps: the refreshed Dev app launched on a disposable sample; Andrew's direct review at his display scale remains open. The installed Applications copy stays at Cycle 82 until review. The dialog is resizable within the app window, not a separate native window. Exact PDF page breaks remain in paginated preview rather than the continuous live view; broader Cycle 69 acceptance and public signing remain open.
 
 Runnable artifacts: `dist/Fomawrite.app` and `dist/Fomawrite Dev.app`. [Optional exercise](../research/usability/cycle-83.md): drag the dialog edge and dividers, then inspect wide, compact and dark layouts.
+
+## Cycle 84 — horizontal access in narrow Export
+
+Planned scope: answer Andrew's follow-up that the compact Export layout hid the right bands. Let the dialog become thinner while retaining access to all three bands.
+
+Changes: Export keeps the output, styles and live preview bands side by side at their useful minimum widths. Below the combined width, a persistent horizontal scrollbar moves between them; each band keeps its vertical scrolling. The title and action footer stay fixed. The resize grip allows 380 px, and the [dialog style guide](dialog-style-guide.md) now documents this behavior.
+
+Tests and visual verification: `./bin/build` and `./bin/test` passed **113 tests, zero failures and zero skips**. The Export regression drags the horizontal scrollbar, checks that styles and preview remain present at 400 px, and scrolls the preview into view. Synthetic wide and narrow renders were inspected, including both ends of the scrollbar. `./bin/package-mac` produced a locally signed ordinary bundle. See [Cycle 84 evidence](../research/cycle-84/README.md).
+
+Native verification and known gaps: the running Dev app must close normally before its QA bundle can be refreshed; the packaged ordinary bundle is ready. Andrew's direct display-scale review remains open. The dialog is still bounded by the host window; exact PDF page breaks are available through Paginated preview, not the live view. Public signing and broader Cycle 69 acceptance remain open.
+
+Runnable artifact: `dist/Fomawrite.app` is current. The Dev bundle will be refreshed after its running process exits. [Optional exercise](../research/usability/cycle-84.md): shrink Export, scroll across all three bands, then expand it again.
